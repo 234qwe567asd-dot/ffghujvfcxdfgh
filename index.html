@@ -1,0 +1,392 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<title>文書日課</title>
+<meta name="theme-color" content="#2a6b55">
+<meta name="description" content="每日計畫行事曆與文書題庫繳交">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="icon" type="image/png" href="icons/icon-192.png">
+<link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="文書日課">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500&family=Noto+Sans+TC:wght@400;500;700&family=Noto+Serif+TC:wght@600;900&display=swap">
+<style>
+/* Layout: ruled-paper workbench. Calendar = month grid beside a big day sheet; bank = year x type table beside a six-question slip; admin = contestant ledger that opens into the same table read-only. Red seal stamp marks every submitted answer. */
+:root{
+  --paper:#eef2ef; --sheet:#fafcfa; --ink:#1a2220; --ink2:#52605b;
+  --grid:#c8d3cd; --grid2:#dfe7e2;
+  --green:#2a6b55; --green-soft:#dcebe4; --on-green:#ffffff;
+  --seal:#bf3a31; --seal-soft:#f8e4e1;
+  --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
+  --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
+  color-scheme:light;
+}
+@media (prefers-color-scheme: dark){
+  :root{
+    --paper:#111614; --sheet:#181f1c; --ink:#e5ece8; --ink2:#9aa9a2;
+    --grid:#35423c; --grid2:#252f2a;
+    --green:#63b898; --green-soft:#1e3329; --on-green:#0d1512;
+    --seal:#e2675d; --seal-soft:#3a1f1d;
+    color-scheme:dark;
+  }
+}
+*{box-sizing:border-box}
+html{-webkit-text-size-adjust:100%}
+body{
+  margin:0; background-color:var(--paper); color:var(--ink);
+  background-image:linear-gradient(var(--grid2) 1px,transparent 1px),linear-gradient(90deg,var(--grid2) 1px,transparent 1px);
+  background-size:28px 28px;
+  font:15px/1.6 var(--sans);
+  padding-block:max(20px,env(safe-area-inset-top,0px)) calc(72px + env(safe-area-inset-bottom,0px));
+  padding-left:max(16px,env(safe-area-inset-left,0px));
+  padding-right:max(16px,env(safe-area-inset-right,0px));
+}
+.app{max-width:1120px;margin:0 auto}
+button,input,select{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--green);outline-offset:2px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+[hidden]{display:none!important}
+h1,h2,h3{font-family:var(--serif);margin:0;text-wrap:balance}
+a{color:var(--green)}
+
+.top{display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:8px 24px;margin-bottom:18px}
+.brand h1{font-size:30px;font-weight:900;letter-spacing:.06em;line-height:1.2}
+.brand p{margin:2px 0 0;color:var(--ink2);font-size:14px}
+.who{display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-size:14px;color:var(--ink2)}
+.who b{color:var(--ink);font-weight:500;overflow-wrap:anywhere}
+.note{margin:0 0 12px;padding:8px 12px;background:var(--seal-soft);color:var(--ink);border-left:3px solid var(--seal);font-size:14px;min-width:0;overflow-wrap:anywhere}
+.note.good{background:var(--green-soft);border-left-color:var(--green)}
+
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--grid);margin-bottom:20px;flex-wrap:wrap}
+.tabs a{display:inline-block;padding:9px 18px;color:var(--ink2);text-decoration:none;font-weight:500;border:1px solid transparent;border-bottom:none;margin-bottom:-1px;border-radius:4px 4px 0 0}
+.tabs a:hover{color:var(--ink)}
+.tabs a[aria-current="page"]{background:var(--sheet);color:var(--ink);border-color:var(--grid);font-weight:700}
+
+.sheet{background:var(--sheet);border:1px solid var(--grid);border-radius:4px;min-width:0}
+.btn{min-height:40px;padding:6px 14px;border:1px solid var(--ink);border-radius:3px;background:var(--sheet);color:var(--ink);font-weight:500;cursor:pointer;display:inline-flex;align-items:center;justify-content:center;gap:6px;text-decoration:none}
+.btn:hover{background:var(--grid2)}
+.btn.primary{background:var(--green);border-color:var(--green);color:var(--on-green)}
+.btn.primary:hover{filter:brightness(1.08)}
+.btn[disabled]{opacity:.5;cursor:not-allowed}
+.txtbtn{background:none;border:none;padding:6px 8px;color:var(--green);font-weight:500;cursor:pointer;text-decoration:underline;text-underline-offset:3px;min-height:36px}
+.txtbtn.danger{color:var(--seal)}
+.bar{height:6px;background:var(--grid2);border-radius:3px;overflow:hidden}
+.bar i{display:block;height:100%;background:var(--green)}
+.tag{font-family:var(--mono);font-size:12px;padding:2px 6px;border:1px solid var(--grid);border-radius:2px;color:var(--ink2);white-space:nowrap}
+.tag.admin{border-color:var(--seal);color:var(--seal)}
+.muted{color:var(--ink2);font-size:14px}
+
+/* auth + setup */
+.center{max-width:440px;margin:6vh auto 0}
+.card{padding:22px;margin-bottom:16px}
+.card h2{font-size:22px;font-weight:900;margin-bottom:6px}
+.card p{margin:6px 0}
+.authtabs{display:flex;gap:4px;margin:14px 0 12px;border-bottom:1px solid var(--grid)}
+.authtabs button{flex:1;min-height:42px;border:1px solid transparent;border-bottom:none;background:none;cursor:pointer;color:var(--ink2);font-weight:500;border-radius:4px 4px 0 0;margin-bottom:-1px}
+.authtabs button[aria-selected="true"]{background:var(--sheet);color:var(--ink);border-color:var(--grid);font-weight:700}
+.field{display:flex;flex-direction:column;gap:4px;margin-bottom:12px}
+.field label{font-size:13px;color:var(--ink2);font-weight:500}
+.field input{height:44px;padding:0 12px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);width:100%}
+.stack{display:flex;flex-direction:column;gap:10px}
+pre.code{margin:8px 0;padding:12px;background:var(--grid2);border-radius:3px;overflow-x:auto;font:13px/1.6 var(--mono)}
+
+/* calendar */
+.cal-layout{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:20px;align-items:start}
+.monthbox{padding:14px}
+.mhead{display:flex;align-items:center;gap:8px;margin-bottom:12px;flex-wrap:wrap}
+.mtitle{flex:1;min-width:120px;display:flex;align-items:baseline;gap:10px;flex-wrap:wrap}
+.mtitle b{font-family:var(--serif);font-size:22px;font-weight:900}
+.mtitle span{color:var(--ink2);font-size:13px}
+.sqbtn{width:40px;height:40px;border:1px solid var(--grid);background:var(--sheet);border-radius:3px;font-size:20px;line-height:1;cursor:pointer}
+.sqbtn:hover{background:var(--grid2)}
+.wk,.mgrid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr))}
+.wk{margin-bottom:4px}
+.wk span{text-align:center;font-family:var(--mono);font-size:12px;color:var(--ink2);padding:2px 0}
+.mgrid{gap:1px;background:var(--grid2);border:1px solid var(--grid2)}
+.day{min-width:0;min-height:62px;padding:6px 7px;border:none;background:var(--sheet);display:flex;flex-direction:column;align-items:flex-start;justify-content:space-between;gap:4px;text-align:left;cursor:pointer}
+.day:hover{background:var(--grid2)}
+.day .num{font-family:var(--mono);font-weight:500;font-size:15px;min-width:24px;height:24px;display:inline-grid;place-items:center;border-radius:4px;padding:0 3px}
+.day.out{color:var(--ink2)}
+.day.out .num{opacity:.55}
+.day.today .num{background:var(--seal);color:#fff}
+.day.sel{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green)}
+.chip{font-family:var(--mono);font-size:11px;line-height:1;padding:3px 5px;border:1px solid var(--grid);border-radius:2px;color:var(--ink2)}
+.chip.all{background:var(--green);border-color:var(--green);color:var(--on-green)}
+.daypanel{padding:18px;position:sticky;top:16px}
+.dkick{display:flex;justify-content:space-between;align-items:center;gap:8px;margin-bottom:6px}
+.rel{font-size:13px;font-weight:700;color:var(--ink2);letter-spacing:.08em}
+.rel.now{color:var(--seal)}
+.roc{font-size:13px;color:var(--ink2)}
+.bigdate{display:flex;align-items:center;gap:14px;margin-bottom:14px}
+.bd{font-family:var(--serif);font-weight:900;font-size:76px;line-height:1}
+.bm{font-family:var(--serif);font-weight:600;font-size:18px;line-height:1.5}
+.prog{margin-bottom:14px}
+.progtxt{display:flex;justify-content:space-between;font-size:13px;color:var(--ink2);margin-bottom:5px}
+.progtxt b{font-family:var(--mono);font-weight:500;color:var(--ink)}
+.plans{list-style:none;margin:0 0 14px;padding:0;border-top:1px solid var(--grid)}
+.plan{position:relative;display:flex;align-items:flex-start;gap:8px;padding:10px 0;border-bottom:1px solid var(--grid2)}
+.chk{display:flex;gap:12px;align-items:flex-start;flex:1;min-width:0;cursor:pointer}
+.box{flex:none;width:22px;height:22px;margin-top:1px;border:2px solid var(--ink2);border-radius:3px;background:var(--sheet);display:grid;place-items:center}
+.chk input:checked + .box{background:var(--green);border-color:var(--green)}
+.chk input:checked + .box::after{content:"";width:6px;height:11px;border:solid var(--on-green);border-width:0 2.5px 2.5px 0;transform:rotate(45deg) translate(-1px,-1px)}
+.chk input:focus-visible + .box{outline:2px solid var(--green);outline-offset:2px}
+.txt{overflow-wrap:anywhere}
+.plan.done .txt{color:var(--ink2);text-decoration:line-through;text-decoration-color:var(--seal);text-decoration-thickness:2px}
+.pa{display:flex;flex:none}
+.pa .txtbtn{padding:4px 6px;font-size:13px;min-height:32px}
+.empty{padding:18px 4px;color:var(--ink2);font-size:14px;list-style:none}
+.addrow{display:flex;gap:8px}
+.addrow input{flex:1;min-width:0;height:42px;padding:0 12px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet)}
+
+/* bank */
+.bankhead{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,300px);gap:12px 28px;align-items:end;margin-bottom:16px}
+.pagetitle{font-size:24px;font-weight:900}
+.bankhead p{margin:4px 0 0;color:var(--ink2);font-size:14px}
+.bnum b{font-family:var(--serif);font-size:34px;font-weight:900;line-height:1}
+.bnum span{color:var(--ink2);font-size:14px}
+.bstat .bar{margin:6px 0}
+.bstat p{margin:0;font-size:13px;color:var(--ink2)}
+.bank-layout{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,420px);gap:20px;align-items:start}
+.tablewrap{overflow-x:auto}
+table{border-collapse:collapse;width:100%}
+.bank th,.bank td{border-bottom:1px solid var(--grid2);padding:0;text-align:left}
+.bank thead th{font-size:13px;color:var(--ink2);font-weight:500;padding:10px 12px;background:var(--grid2)}
+.bank tbody th{padding:8px 12px;font-family:var(--serif);font-weight:900;font-size:20px;width:92px;white-space:nowrap}
+.bank tbody th small{display:block;font-family:var(--sans);font-weight:400;font-size:11px;color:var(--ink2)}
+.setbtn{display:flex;flex-direction:column;align-items:flex-start;gap:6px;width:100%;padding:10px 12px;border:none;background:transparent;cursor:pointer;text-align:left}
+.setbtn:hover{background:var(--grid2)}
+.setbtn.sel{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green)}
+.sqs{display:flex;gap:4px}
+.sq{display:block;width:12px;height:12px;border:1.5px solid var(--grid);border-radius:2px;background:var(--sheet)}
+.sq.on{background:var(--seal);border-color:var(--seal)}
+.cnt{font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.setbtn.full .cnt{color:var(--seal);font-weight:500}
+.slip{padding:18px;position:sticky;top:16px}
+.slip h3{font-size:22px;font-weight:900}
+.slip .sub{margin:2px 0 14px;color:var(--ink2);font-size:13px}
+.qlist{list-style:none;margin:0;padding:0;border-top:1px solid var(--grid)}
+.qrow{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr);gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--grid2)}
+.qno{font-family:var(--serif);font-weight:900;font-size:22px;line-height:1.1;color:var(--ink2)}
+.qmain{min-width:0;display:flex;gap:10px;align-items:center}
+.seal{flex:none;display:inline-grid;place-items:center;width:46px;height:46px;border-radius:6px;color:var(--seal);background:var(--seal-soft);font:900 15px/1 var(--serif);letter-spacing:.05em;transform:rotate(-6deg);box-shadow:inset 0 0 0 2px var(--seal),inset 0 0 0 4px var(--seal-soft),inset 0 0 0 5px var(--seal)}
+.qfile{min-width:0}
+.fn{display:block;font-weight:500;overflow-wrap:anywhere}
+.meta{display:block;font-family:var(--mono);font-size:12px;color:var(--ink2)}
+.pend{font-size:14px;overflow-wrap:anywhere}
+.err{grid-column:2;color:var(--seal);font-size:13px;margin:2px 0 0}
+.qact{grid-column:2;display:flex;gap:8px;flex-wrap:wrap}
+.qact .btn{min-height:36px;padding:4px 12px;font-size:14px}
+.qact label.btn{position:relative}
+.qact label.btn:focus-within{outline:2px solid var(--green);outline-offset:2px}
+.rules{margin:14px 0 0;color:var(--ink2);font-size:13px}
+
+/* admin */
+.lead{margin:4px 0 16px;color:var(--ink2);font-size:14px}
+.cfg{display:flex;flex-wrap:wrap;gap:8px 10px;align-items:center;padding:14px 16px;margin-bottom:16px}
+.cfg input[type=number]{width:96px;height:40px;padding:0 10px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);font-family:var(--mono)}
+.cfg p{flex-basis:100%;margin:0;font-size:13px;color:var(--ink2)}
+.ledger{padding:16px;margin-bottom:16px}
+.ledger h3{font-size:18px;font-weight:900;margin-bottom:10px}
+.tools{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:10px}
+.tools input[type=search]{flex:1;min-width:160px;height:40px;padding:0 12px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet)}
+.scroll{overflow-x:auto}
+.tbl th,.tbl td{padding:8px 10px;border-bottom:1px solid var(--grid2);text-align:left;vertical-align:middle;font-size:14px;white-space:nowrap}
+.tbl thead th{font-size:12px;color:var(--ink2);font-weight:500;background:var(--grid2)}
+.tbl td.num{font-family:var(--mono)}
+.tbl td.wrap{white-space:normal;overflow-wrap:anywhere;min-width:140px}
+.crumb{margin-bottom:10px}
+.detailhead{display:flex;gap:14px 28px;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;margin-bottom:16px}
+.detailhead h2{font-size:26px;font-weight:900;overflow-wrap:anywhere}
+.detailhead p{margin:2px 0 0;color:var(--ink2);font-size:14px;overflow-wrap:anywhere}
+
+.toast{position:fixed;left:0;right:0;bottom:0;display:flex;justify-content:center;pointer-events:none;padding:12px max(16px,env(safe-area-inset-left,0px)) calc(14px + env(safe-area-inset-bottom,0px)) max(16px,env(safe-area-inset-right,0px));z-index:20}
+.toast div{background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:4px;font-size:14px;max-width:min(92vw,460px);opacity:0;transform:translateY(8px);transition:opacity .18s,transform .18s}
+.toast.show div{opacity:1;transform:none}
+
+@media (max-width:899px){
+  .cal-layout,.bank-layout,.bankhead{grid-template-columns:minmax(0,1fr)}
+  .daypanel,.slip{position:static}
+  .daypanel{order:-1}
+}
+@media (max-width:420px){
+  .day{min-height:54px;padding:4px 4px}
+  .bd{font-size:64px}
+  .brand h1{font-size:26px}
+}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+</style>
+</head>
+<body>
+<div class="app">
+
+  <!-- 尚未設定 Supabase -->
+  <section id="setup" class="center" hidden>
+    <div class="sheet card">
+      <h2>還差一步設定</h2>
+      <p>網站還沒有連上資料庫。請依 README 建立 Supabase 專案，並把網址與金鑰填進 <code>config.js</code>：</p>
+      <pre class="code">window.APP_CONFIG = {
+  SUPABASE_URL: "https://xxxx.supabase.co",
+  SUPABASE_ANON_KEY: "你的 anon key"
+};</pre>
+      <p class="muted">存檔後重新整理這個頁面。</p>
+    </div>
+  </section>
+
+  <!-- 登入／註冊／重設密碼 -->
+  <section id="auth" class="center" hidden>
+    <div class="sheet card">
+      <h2 style="font-size:28px;letter-spacing:.06em">文書日課</h2>
+      <p class="muted">每日計畫，加上文書題庫的練習繳交。</p>
+      <div id="authLoginBox">
+        <div class="authtabs" role="tablist" aria-label="登入或註冊">
+          <button type="button" role="tab" id="tabLogin" aria-selected="true" data-mode="login">登入</button>
+          <button type="button" role="tab" id="tabSignup" aria-selected="false" data-mode="signup">註冊</button>
+        </div>
+        <form id="authForm" class="stack" novalidate>
+          <div class="field" id="nameField" hidden>
+            <label for="authName">名稱（姓名或暱稱）</label>
+            <input id="authName" type="text" maxlength="40" autocomplete="name">
+          </div>
+          <div class="field">
+            <label for="authEmail">電子信箱</label>
+            <input id="authEmail" type="email" autocomplete="email" inputmode="email" autocapitalize="none" required>
+          </div>
+          <div class="field">
+            <label for="authPass">密碼（至少 6 個字元）</label>
+            <input id="authPass" type="password" autocomplete="current-password" minlength="6" required>
+          </div>
+          <p id="authMsg" class="note" role="alert" hidden></p>
+          <button type="submit" class="btn primary" id="authSubmit">登入</button>
+          <button type="button" class="txtbtn" id="forgotBtn">忘記密碼？</button>
+        </form>
+      </div>
+      <form id="recoverForm" class="stack" hidden novalidate>
+        <h3 style="font-size:18px">設定新密碼</h3>
+        <div class="field">
+          <label for="newPass">新密碼（至少 6 個字元）</label>
+          <input id="newPass" type="password" autocomplete="new-password" minlength="6" required>
+        </div>
+        <p id="recoverMsg" class="note" role="alert" hidden></p>
+        <button type="submit" class="btn primary">儲存新密碼</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 主畫面 -->
+  <div id="main" hidden>
+    <header class="top">
+      <div class="brand">
+        <h1>文書日課</h1>
+        <p>每天的計畫，加上文書題庫的練習繳交</p>
+      </div>
+      <div class="who">
+        <b id="whoName"></b><span id="whoTag" class="tag admin" hidden>管理員</span>
+        <button type="button" class="txtbtn" id="logoutBtn">登出</button>
+      </div>
+    </header>
+
+    <nav class="tabs" aria-label="功能">
+      <a href="#calendar" id="tab-calendar" aria-current="page">行事曆</a>
+      <a href="#bank" id="tab-bank">文書題庫</a>
+      <a href="#admin" id="tab-admin" hidden>管理員</a>
+    </nav>
+
+    <main>
+      <section id="view-calendar" aria-label="行事曆">
+        <div class="cal-layout">
+          <section class="sheet monthbox" aria-label="月曆">
+            <div class="mhead">
+              <button type="button" class="sqbtn" data-nav="-1" aria-label="上個月">‹</button>
+              <div class="mtitle"><b id="mTitle"></b><span id="mRoc"></span></div>
+              <button type="button" class="txtbtn" data-nav="today">回到今天</button>
+              <button type="button" class="sqbtn" data-nav="1" aria-label="下個月">›</button>
+            </div>
+            <div class="wk" aria-hidden="true"><span>日</span><span>一</span><span>二</span><span>三</span><span>四</span><span>五</span><span>六</span></div>
+            <div id="mGrid" class="mgrid"></div>
+          </section>
+          <section class="sheet daypanel" aria-label="當天計畫">
+            <div id="dayHead"></div>
+            <ul id="planList" class="plans"></ul>
+            <form id="planForm" class="addrow">
+              <label class="vh" for="planInput">新增計畫</label>
+              <input id="planInput" type="text" maxlength="120" placeholder="例：英打練習 30 分鐘" autocomplete="off">
+              <button type="submit" class="btn primary">新增</button>
+            </form>
+          </section>
+        </div>
+      </section>
+
+      <section id="view-bank" aria-label="文書題庫" hidden>
+        <div class="bankhead">
+          <div>
+            <h2 class="pagetitle">文書題庫</h2>
+            <p>14 年的正式賽與模擬賽，共 28 份，每份 6 大題。選一份，把每題的作答檔（PDF 或 DOCX）繳上來；繳交後會蓋上已繳章，檔案送到後台，不評分。</p>
+          </div>
+          <div id="bankStats" class="bstat"></div>
+        </div>
+        <div class="bank-layout">
+          <div class="sheet tablewrap">
+            <table class="bank">
+              <caption class="vh">題庫繳交進度</caption>
+              <thead><tr><th scope="col">年度</th><th scope="col">正式賽</th><th scope="col">模擬賽</th></tr></thead>
+              <tbody id="bankBody"></tbody>
+            </table>
+          </div>
+          <aside class="sheet slip" id="bankDetail" aria-live="polite"></aside>
+        </div>
+      </section>
+
+      <section id="view-admin" aria-label="管理員" hidden>
+        <h2 class="pagetitle">管理員</h2>
+        <p class="lead">所有選手的繳交都在這裡。點「查看」可以進到某位選手，看他每一題的檔案並開啟。</p>
+        <form id="cfgForm" class="sheet cfg">
+          <label for="cfgYear"><b>題庫起始年度（民國）</b></label>
+          <input id="cfgYear" type="number" min="50" max="200" step="1">
+          <button type="submit" class="btn">儲存</button>
+          <p id="cfgNote"></p>
+        </form>
+        <div class="sheet ledger">
+          <h3>選手</h3>
+          <div class="tools">
+            <label class="vh" for="adminSearch">搜尋選手</label>
+            <input id="adminSearch" type="search" placeholder="搜尋名稱或信箱">
+            <button type="button" class="btn" id="adminRefresh">重新整理</button>
+          </div>
+          <p id="adminSum" class="muted"></p>
+          <div class="scroll" id="adminTable"></div>
+        </div>
+      </section>
+
+      <section id="view-detail" aria-label="選手詳細" hidden>
+        <p class="crumb"><a href="#admin">← 回到選手列表</a></p>
+        <div class="detailhead">
+          <div><h2 id="dName"></h2><p id="dEmail"></p></div>
+          <div id="dStats" class="bstat" style="min-width:min(100%,260px)"></div>
+        </div>
+        <div class="bank-layout">
+          <div class="sheet tablewrap">
+            <table class="bank">
+              <caption class="vh">這位選手的繳交進度</caption>
+              <thead><tr><th scope="col">年度</th><th scope="col">正式賽</th><th scope="col">模擬賽</th></tr></thead>
+              <tbody id="dBody"></tbody>
+            </table>
+          </div>
+          <aside class="sheet slip" id="dSlip" aria-live="polite"></aside>
+        </div>
+      </section>
+    </main>
+  </div>
+</div>
+<div class="toast" id="toast" role="status" aria-live="polite"><div id="toastMsg"></div></div>
+
+<script src="config.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
+<script src="app.js"></script>
+</body>
+</html>
