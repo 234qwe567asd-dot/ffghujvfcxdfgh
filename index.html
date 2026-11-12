@@ -209,6 +209,51 @@ table{border-collapse:collapse;width:100%}
 .toast div{background:var(--ink);color:var(--sheet);padding:10px 16px;border-radius:4px;font-size:14px;max-width:min(92vw,460px);opacity:0;transform:translateY(8px);transition:opacity .18s,transform .18s}
 .toast.show div{opacity:1;transform:none}
 
+/* 第 2 版：年度清單、每題兩格、題庫管理 */
+.yrows{list-style:none;margin:0;padding:0}
+.yrow{display:grid;grid-template-columns:84px minmax(0,1fr);gap:8px 12px;padding:12px;border-bottom:1px solid var(--grid2);align-items:start}
+.yrow:last-child{border-bottom:none}
+.ylabel{font-family:var(--serif);font-weight:900;font-size:22px;line-height:1.2}
+.ylabel small{display:block;font-family:var(--sans);font-weight:400;font-size:11px;color:var(--ink2)}
+.yset{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.yrows .setbtn{flex:1 1 150px;max-width:260px;width:auto;border:1px solid var(--grid);border-radius:3px;background:var(--sheet);padding:8px 10px;gap:5px}
+.yrows .setbtn:hover{background:var(--grid2)}
+.yrows .setbtn.sel{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green);border-color:var(--green)}
+.yrows .setbtn.hid{border-style:dashed;opacity:.8}
+.stitle{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
+.sqs{flex-wrap:wrap}
+.slots{display:flex;flex-direction:column;gap:10px;min-width:0}
+.slot{display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px 10px;border:1px solid var(--grid2);border-radius:3px}
+.slot.has{border-color:var(--green)}
+.slothead{display:flex;align-items:center;justify-content:space-between;gap:8px}
+.slotbody{min-width:0}
+.seal.sm{width:34px;height:34px;font-size:12px;border-radius:5px}
+.qrow.extra{background:var(--seal-soft);padding-left:6px;padding-right:6px}
+.slip .kind{margin:0 0 2px;font-size:13px;color:var(--ink2)}
+.setgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,300px),1fr));gap:16px;margin-bottom:16px;align-items:start}
+.setgrid .cfg{margin-bottom:0;align-items:flex-end}
+.cfg h3{flex-basis:100%;font-size:17px;font-weight:900;margin:0}
+.cfg .f{display:flex;flex-direction:column;gap:4px;min-width:0}
+.cfg .f label{font-size:13px;color:var(--ink2);font-weight:500}
+.cfg .f.sm{flex:0 0 104px}
+.cfg .f.grow{flex:1 1 180px}
+.cfg .f.full{flex-basis:100%}
+.cfg input[type=text],.cfg input[type=number]{width:100%;height:40px;padding:0 10px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);min-width:0;font-family:var(--sans)}
+.cfg .msg{flex-basis:100%;margin:0;font-size:13px;overflow-wrap:anywhere}
+.cfg .msg.bad{color:var(--seal)}
+.tidybox{flex-basis:100%;padding:8px 12px;background:var(--seal-soft);border-left:3px solid var(--seal);font-size:14px;overflow-wrap:anywhere}
+.tidybox .row{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px}
+.tbl td.acts{white-space:normal;min-width:150px}
+.tbl td.acts .btn,.tbl td.acts .txtbtn{min-height:34px;padding:4px 10px;font-size:13px}
+.tbl input.inl{height:36px;padding:0 8px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);width:100%;min-width:120px}
+.tbl input.inl.q{width:72px;min-width:60px}
+.tag.hid{border-color:var(--seal);color:var(--seal)}
+@media (max-width:480px){
+  .yrow{grid-template-columns:minmax(0,1fr)}
+  .ylabel{display:flex;align-items:baseline;gap:8px}
+  .ylabel small{display:inline}
+  .yrows .setbtn{max-width:none}
+}
 @media (max-width:899px){
   .cal-layout,.bank-layout,.bankhead{grid-template-columns:minmax(0,1fr)}
   .daypanel,.slip{position:static}
@@ -294,7 +339,8 @@ table{border-collapse:collapse;width:100%}
     <nav class="tabs" aria-label="功能">
       <a href="#calendar" id="tab-calendar" aria-current="page">行事曆</a>
       <a href="#bank" id="tab-bank">文書題庫</a>
-      <a href="#admin" id="tab-admin" hidden>管理員</a>
+      <a href="#admin" id="tab-admin" hidden>選手</a>
+      <a href="#sets" id="tab-sets" hidden>題庫管理</a>
     </nav>
 
     <main>
@@ -326,31 +372,19 @@ table{border-collapse:collapse;width:100%}
         <div class="bankhead">
           <div>
             <h2 class="pagetitle">文書題庫</h2>
-            <p>14 年的正式賽與模擬賽，共 28 份，每份 6 大題。選一份，把每題的作答檔（PDF 或 DOCX）繳上來；繳交後會蓋上已繳章，檔案送到後台，不評分。</p>
+            <p>選一份題目，每一題可以繳兩份檔案：一份 DOCX、一份 PDF（兩份都繳或只繳一份都可以）。繳交後會蓋上已繳章，檔案送到後台，不評分。</p>
           </div>
           <div id="bankStats" class="bstat"></div>
         </div>
         <div class="bank-layout">
-          <div class="sheet tablewrap">
-            <table class="bank">
-              <caption class="vh">題庫繳交進度</caption>
-              <thead><tr><th scope="col">年度</th><th scope="col">正式賽</th><th scope="col">模擬賽</th></tr></thead>
-              <tbody id="bankBody"></tbody>
-            </table>
-          </div>
+          <div class="sheet"><ul class="yrows" id="bankList" aria-label="題目清單"></ul></div>
           <aside class="sheet slip" id="bankDetail" aria-live="polite"></aside>
         </div>
       </section>
 
       <section id="view-admin" aria-label="管理員" hidden>
-        <h2 class="pagetitle">管理員</h2>
+        <h2 class="pagetitle">選手</h2>
         <p class="lead">所有選手的繳交都在這裡。點「查看」可以進到某位選手，看他每一題的檔案並開啟。</p>
-        <form id="cfgForm" class="sheet cfg">
-          <label for="cfgYear"><b>題庫起始年度（民國）</b></label>
-          <input id="cfgYear" type="number" min="50" max="200" step="1">
-          <button type="submit" class="btn">儲存</button>
-          <p id="cfgNote"></p>
-        </form>
         <div class="sheet ledger">
           <h3>選手</h3>
           <div class="tools">
@@ -363,6 +397,40 @@ table{border-collapse:collapse;width:100%}
         </div>
       </section>
 
+      <section id="view-sets" aria-label="題庫管理" hidden>
+        <h2 class="pagetitle">題庫管理</h2>
+        <p class="lead">決定選手看得到哪些題目。新增、修改都不會動到已繳交的檔案。題目一旦有人繳交，就只能隱藏、不能刪除；隱藏後選手看不到，但「選手」頁仍看得到。</p>
+        <div class="setgrid">
+          <form id="yearForm" class="sheet cfg" novalidate>
+            <h3>新增年度</h3>
+            <div class="f sm"><label for="yearFrom">起（民國）</label><input id="yearFrom" type="number" min="1" max="300" step="1" inputmode="numeric" autocomplete="off"></div>
+            <div class="f sm"><label for="yearTo">迄（可不填）</label><input id="yearTo" type="number" min="1" max="300" step="1" inputmode="numeric" autocomplete="off"></div>
+            <button type="submit" class="btn primary">新增</button>
+            <p class="muted msg" id="yearMsg">每個年度會建立正式賽與模擬賽各一份，每份預設 6 題。已隱藏的年度會重新顯示。</p>
+          </form>
+          <form id="customForm" class="sheet cfg" novalidate>
+            <h3>新增自製題目</h3>
+            <div class="f sm"><label for="cYear">放在哪一年</label><input id="cYear" type="number" min="1" max="300" step="1" inputmode="numeric" autocomplete="off"></div>
+            <div class="f sm"><label for="cQ">題數</label><input id="cQ" type="number" min="1" max="20" step="1" value="6" inputmode="numeric"></div>
+            <div class="f grow full"><label for="cTitle">名稱</label><input id="cTitle" type="text" maxlength="60" placeholder="例：113 自製模擬賽模擬題" autocomplete="off"></div>
+            <button type="submit" class="btn primary">新增</button>
+            <p class="muted msg" id="customMsg">自製題目都是模擬題，會顯示在該年度的正式賽、模擬賽旁邊。</p>
+          </form>
+          <form id="tidyForm" class="sheet cfg" novalidate>
+            <h3>整理舊年度</h3>
+            <div class="f sm"><label for="tidyYear">（含）以前</label><input id="tidyYear" type="number" min="1" max="300" step="1" inputmode="numeric" autocomplete="off"></div>
+            <button type="submit" class="btn">預覽</button>
+            <p class="muted msg" id="tidyMsg">沒有人繳交的會刪除，已有繳交的會改成隱藏，檔案不會被動到。先預覽，再確認。</p>
+            <div id="tidyBox" class="tidybox" hidden></div>
+          </form>
+        </div>
+        <div class="sheet ledger">
+          <h3>全部題目</h3>
+          <p id="setsSum" class="muted"></p>
+          <div class="scroll" id="setsTable"></div>
+        </div>
+      </section>
+
       <section id="view-detail" aria-label="選手詳細" hidden>
         <p class="crumb"><a href="#admin">← 回到選手列表</a></p>
         <div class="detailhead">
@@ -370,13 +438,7 @@ table{border-collapse:collapse;width:100%}
           <div id="dStats" class="bstat" style="min-width:min(100%,260px)"></div>
         </div>
         <div class="bank-layout">
-          <div class="sheet tablewrap">
-            <table class="bank">
-              <caption class="vh">這位選手的繳交進度</caption>
-              <thead><tr><th scope="col">年度</th><th scope="col">正式賽</th><th scope="col">模擬賽</th></tr></thead>
-              <tbody id="dBody"></tbody>
-            </table>
-          </div>
+          <div class="sheet"><ul class="yrows" id="dList" aria-label="這位選手的題目清單"></ul></div>
           <aside class="sheet slip" id="dSlip" aria-live="polite"></aside>
         </div>
       </section>
