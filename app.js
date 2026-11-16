@@ -346,10 +346,12 @@ function listHtml(items, sets, sel) {
   return years.map(y => {
     const btns = sets.filter(s => s.year === y).sort(sortSets).map(s => {
       const n = setCount(items, s);
-      let sq = "";
+      let sw = "", sp = "";
       for (let q = 1; q <= s.q_count; q++) {
-        sq += '<i class="sq"><b class="w' + (items[slotKey(s.id, q, "docx")] ? " on" : "") + '"></b><b class="p' + (items[slotKey(s.id, q, "pdf")] ? " on" : "") + '"></b></i>';
+        sw += '<i class="sq' + (items[slotKey(s.id, q, "docx")] ? " on" : "") + '"></i>';
+        sp += '<i class="sq' + (items[slotKey(s.id, q, "pdf")] ? " on" : "") + '"></i>';
       }
+      const sq = '<span class="sqrow w">' + sw + '</span><span class="sqrow p">' + sp + "</span>";
       return '<button type="button" class="setbtn' + (sel === s.id ? " sel" : "") + (n === s.q_count ? " full" : "") + (s.hidden ? " hid" : "") + '" data-set="' + esc(s.id) + '" aria-pressed="' + (sel === s.id) + '" aria-label="' + esc(s.title) + "，已繳 " + n + " 題，共 " + s.q_count + ' 題">' +
         '<span class="stitle">' + esc(setLabel(s)) + '</span><span class="sqs">' + sq + '</span><span class="cnt">' + n + "/" + s.q_count + " 題" + (s.hidden ? " · 已隱藏" : "") + "</span></button>";
     }).join("");
@@ -397,7 +399,7 @@ function slipHtml(items, setId, admin) {
     }
   }
   return "<h3>" + esc(set.title) + '</h3><p class="sub">' + KINDS[set.kind] + (set.hidden ? " · 已隱藏（選手看不到）" : "") + " · 已繳 " + n + " / " + set.q_count + " 題" + (n === set.q_count ? " · 全部繳完了" : "") + "</p>" +
-    '<p class="legend" aria-label="顏色說明"><span><i class="w"></i>左：Word（DOCX）</span><span><i class="p"></i>右：PDF</span></p>' +
+    '<p class="legend" aria-label="顏色說明"><span><i class="w"></i>左：Word（DOCX）</span><span><i class="p"></i>右：PDF</span><span><i class="rb"></i>彩虹＝已繳</span></p>' +
     '<ol class="qlist">' + rows + extra + "</ol>" +
     (admin ? "" : '<p class="rules">每一題可以繳一份 DOCX 和一份 PDF，只收這兩種格式，單檔上限 20 MB。重新繳交會取代同一格的舊檔。</p>');
 }

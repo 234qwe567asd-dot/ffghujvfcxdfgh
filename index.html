@@ -175,11 +175,10 @@ table{border-collapse:collapse;width:100%}
 .setbtn:hover{background:var(--grid2)}
 .setbtn.sel{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green)}
 .sqs{display:flex;gap:4px}
-.sq{display:flex;width:18px;height:12px;border:1.5px solid var(--grid);border-radius:2px;background:var(--sheet);overflow:hidden}
-.sq b{display:block;flex:1}
-.sq b+b{border-left:1px solid var(--grid)}
-.sq b.w.on{background:var(--word)}
-.sq b.p.on{background:var(--pdf)}
+.sq{display:block;width:14px;height:11px;border-radius:2px;border:1.5px solid var(--word);background:var(--word-soft)}
+.sqrow.p .sq{border-color:var(--pdf);background:var(--pdf-soft)}
+.sq.on{border-color:transparent;background:linear-gradient(135deg,#ff4d4d 0%,#ff9f1a 17%,#ffe14d 33%,#3ecf6e 50%,#33b5ff 67%,#7a5cff 83%,#e056fd 100%)}
+.sqrow{display:flex;gap:4px}
 .cnt{font-family:var(--mono);font-size:12px;color:var(--ink2)}
 .setbtn.full .cnt{color:var(--seal);font-weight:500}
 .slip{padding:18px;position:sticky;top:16px}
@@ -236,11 +235,11 @@ table{border-collapse:collapse;width:100%}
 .yrows .setbtn.sel{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green);border-color:var(--green)}
 .yrows .setbtn.hid{border-style:dashed;opacity:.8}
 .stitle{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
-.sqs{flex-wrap:wrap}
+.sqs{flex-direction:column;gap:3px}
 .slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0;align-items:stretch}
 .slot{--fc:var(--word);--fc-soft:var(--word-soft);display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px 10px;border:1px solid var(--grid2);border-top:3px solid var(--fc);border-radius:3px}
 .slot.p{--fc:var(--pdf);--fc-soft:var(--pdf-soft)}
-.slot.has{border-color:var(--fc);background:var(--fc-soft)}
+.slot.has{border-color:var(--fc);background:var(--fc-soft);border-top-color:transparent;border-image:linear-gradient(90deg,#ff4d4d,#ff9f1a,#ffe14d,#3ecf6e,#33b5ff,#7a5cff,#e056fd) 1}
 .slot .tag{color:var(--fc);border-color:var(--fc);font-weight:500}
 .slot .seal{color:var(--fc);background:var(--fc-soft);box-shadow:inset 0 0 0 2px var(--fc),inset 0 0 0 4px var(--fc-soft),inset 0 0 0 5px var(--fc)}
 .slot .qact{grid-column:auto;margin-top:auto}
@@ -251,6 +250,7 @@ table{border-collapse:collapse;width:100%}
 .legend i{display:inline-block;width:14px;height:14px;border-radius:3px}
 .legend i.w{background:var(--word)}
 .legend i.p{background:var(--pdf)}
+.legend i.rb{background:linear-gradient(135deg,#ff4d4d,#ff9f1a,#ffe14d,#3ecf6e,#33b5ff,#7a5cff,#e056fd)}
 .grp{margin:0;padding:10px 12px 4px;font-family:var(--serif);font-size:16px;font-weight:900;border-top:1px solid var(--grid)}
 .slothead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .slotbody{min-width:0}
