@@ -4,7 +4,7 @@
 /* ================= 常數與小工具 ================= */
 const CFG = window.APP_CONFIG || {};
 const BUCKET = "submissions";
-const VERSION = "2.4";
+const VERSION = "2.5";
 const DOW = ["日", "一", "二", "三", "四", "五", "六"];
 const KINDS = { o: "正式賽", m: "模擬賽", c: "自製模擬題" };
 const KIND_ORDER = { o: 0, m: 1, c: 2 };
@@ -91,7 +91,7 @@ const api = {
   upsertSub: row => S.sb.from("submissions").upsert(row, { onConflict: "user_id,set_id,q,fmt" }).select().single().then(must),
   signedUrl: (path, name) => S.sb.storage.from(BUCKET).createSignedUrl(path, 180, name ? { download: name } : undefined),
   allProfiles: () => fetchAll((a, b) => byCreated(S.sb.from("profiles").select("*")).range(a, b)),
-  myScores: uid => fetchAll((a, b) => byCreated(S.sb.from("scores").select("*").eq("user_id", uid)).range(a, b)),
+  myScores: uid => fetchAll((a, b) => S.sb.from("scores").select("*").eq("user_id", uid).order("id", { ascending: true }).range(a, b)),
   allScores: () => fetchAll((a, b) => S.sb.from("scores").select("*").order("id", { ascending: true }).range(a, b)),
   upsertScore: row => S.sb.from("scores").upsert(row, { onConflict: "user_id,set_id,q" }).select().single().then(must),
   deleteScore: (uid, setId, q) => S.sb.from("scores").delete().eq("user_id", uid).eq("set_id", setId).eq("q", q).then(must),
@@ -176,7 +176,7 @@ async function handleSession(session, force) {
   showOnly("main");
   $("whoName").textContent = "載入中…";
   try {
-    const r = await Promise.all([api.getProfile(S.uid), api.listSets(), api.listPlans(), api.mySubs(S.uid), api.myScores(S.uid).catch(() => [])]);
+    const r = await Promise.all([api.getProfile(S.uid), api.listSets(), api.listPlans(), api.mySubs(S.uid), api.myScores(S.uid).catch(e => { console.warn("scores", e); return []; })]);
     S.profile = r[0]; S.isAdmin = r[0].role === "admin";
     S.sets = r[1] || []; S.plans = r[2] || []; S.plansLoaded = true;
     S.items = toItems(r[3] || []); S.scores = toScoreMap(r[4] || []);
@@ -208,6 +208,7 @@ function route() {
     if (n === name) t.setAttribute("aria-current", "page"); else t.removeAttribute("aria-current");
   });
   $("view-detail").hidden = !detail;
+  if (name === "bank" || name === "custom") refreshMine();
   if (name === "admin" || name === "sets") {
     if (name === "sets") renderSets();
     ensureAdminData().then(() => {
@@ -218,6 +219,19 @@ function route() {
   }
 }
 window.addEventListener("hashchange", route);
+let mineBusy = false;
+async function refreshMine() {
+  if (mineBusy || !S.ready || !S.uid) return;
+  mineBusy = true;
+  try {
+    const rows = await api.myScores(S.uid), m = toScoreMap(rows);
+    if (JSON.stringify(m) !== JSON.stringify(S.scores)) { S.scores = m; renderBank(); }
+  } catch (e) { console.warn("scores", e); }
+  mineBusy = false;
+}
+document.addEventListener("visibilitychange", () => {
+  if (!document.hidden && (!$("view-bank").hidden || !$("view-custom").hidden)) refreshMine();
+});
 
 /* ================= 行事曆 ================= */
 function plansOf(ds) { return S.plans.filter(p => p.plan_date === ds).sort((a, b) => String(a.created_at).localeCompare(String(b.created_at))); }

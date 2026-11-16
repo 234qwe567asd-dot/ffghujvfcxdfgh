@@ -189,8 +189,8 @@ table{border-collapse:collapse;width:100%}
 .qleft{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
 .qscore{display:inline-flex;align-items:baseline;gap:1px;padding:2px 8px;border-radius:12px;background:var(--green);color:var(--on-green);font-family:var(--mono);font-size:14px;line-height:1.5;white-space:nowrap}
 .qscore small{font-size:11px}
-.qscore.edit{padding:0;background:none;display:block}
-.scoreIn{width:50px;height:32px;padding:0 4px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);font-family:var(--mono);font-size:14px;text-align:center;-moz-appearance:textfield;appearance:textfield}
+.qscore.edit{padding:0;background:none;display:block;color:var(--ink)}
+.scoreIn{color:var(--ink);width:50px;height:32px;padding:0 4px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);font-family:var(--mono);font-size:14px;text-align:center;-moz-appearance:textfield;appearance:textfield}
 .scoreIn::-webkit-outer-spin-button,.scoreIn::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
 .scoreIn.has{border-color:var(--green);background:var(--green-soft);font-weight:700}
 .scoreIn::placeholder{font-size:11px;color:var(--ink2)}
@@ -547,6 +547,6 @@ html.mobile .trow>span.lb{flex-basis:100%}
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="app.js?v=2.4"></script>
+<script src="app.js?v=2.5"></script>
 </body>
 </html>
