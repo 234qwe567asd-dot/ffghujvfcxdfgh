@@ -4,6 +4,7 @@
 /* ================= 常數與小工具 ================= */
 const CFG = window.APP_CONFIG || {};
 const BUCKET = "submissions";
+const VERSION = "2.3";
 const DOW = ["日", "一", "二", "三", "四", "五", "六"];
 const KINDS = { o: "正式賽", m: "模擬賽", c: "自製模擬題" };
 const KIND_ORDER = { o: 0, m: 1, c: 2 };
@@ -27,8 +28,9 @@ const S = {
   sb: null, uid: null, profile: null, isAdmin: false, ready: false, recovery: false,
   today: today0, sel: today0, vy: new Date().getFullYear(), vm: new Date().getMonth(),
   plans: [], plansLoaded: false, pbusy: {},
-  sets: [], items: {}, bankSel: null, bankPicked: false, customSel: null, customPicked: false, pending: {}, busy: {}, errs: {},
+  sets: [], items: {}, scores: {}, bankSel: null, bankPicked: false, customSel: null, customPicked: false, pending: {}, busy: {}, errs: {},
   admin: {
+    scores: [],
     profiles: [], subs: [], loaded: false, loading: false, q: "",
     detailUid: null, sel: null, editId: null, confirmDel: null, tidy: null, busy: false
   }
@@ -89,6 +91,10 @@ const api = {
   upsertSub: row => S.sb.from("submissions").upsert(row, { onConflict: "user_id,set_id,q,fmt" }).select().single().then(must),
   signedUrl: (path, name) => S.sb.storage.from(BUCKET).createSignedUrl(path, 180, name ? { download: name } : undefined),
   allProfiles: () => fetchAll((a, b) => byCreated(S.sb.from("profiles").select("*")).range(a, b)),
+  myScores: uid => fetchAll((a, b) => byCreated(S.sb.from("scores").select("*").eq("user_id", uid)).range(a, b)),
+  allScores: () => fetchAll((a, b) => S.sb.from("scores").select("*").order("id", { ascending: true }).range(a, b)),
+  upsertScore: row => S.sb.from("scores").upsert(row, { onConflict: "user_id,set_id,q" }).select().single().then(must),
+  deleteScore: (uid, setId, q) => S.sb.from("scores").delete().eq("user_id", uid).eq("set_id", setId).eq("q", q).then(must),
   allSubs: () => fetchAll((a, b) => byCreated(S.sb.from("submissions").select("*")).range(a, b)),
   addSets: rows => S.sb.from("exam_sets").insert(rows).select().then(must),
   patchSet: (id, patch) => S.sb.from("exam_sets").update(patch).eq("id", id).then(must),
@@ -162,7 +168,7 @@ async function handleSession(session, force) {
   if (!session) {
     S.uid = null; S.ready = false; S.profile = null; S.isAdmin = false;
     S.plans = []; S.plansLoaded = false; S.sets = []; S.items = {}; S.pending = {};
-    S.admin.loaded = false; S.admin.profiles = []; S.admin.subs = [];
+    S.admin.loaded = false; S.admin.profiles = []; S.admin.subs = []; S.admin.scores = []; S.scores = {};
     showOnly("auth"); return;
   }
   if (!force && S.ready && S.uid === session.user.id) return;
@@ -170,10 +176,10 @@ async function handleSession(session, force) {
   showOnly("main");
   $("whoName").textContent = "載入中…";
   try {
-    const r = await Promise.all([api.getProfile(S.uid), api.listSets(), api.listPlans(), api.mySubs(S.uid)]);
+    const r = await Promise.all([api.getProfile(S.uid), api.listSets(), api.listPlans(), api.mySubs(S.uid), api.myScores(S.uid).catch(() => [])]);
     S.profile = r[0]; S.isAdmin = r[0].role === "admin";
     S.sets = r[1] || []; S.plans = r[2] || []; S.plansLoaded = true;
-    S.items = toItems(r[3] || []);
+    S.items = toItems(r[3] || []); S.scores = toScoreMap(r[4] || []);
     S.ready = true;
   } catch (err) {
     showOnly("auth");
@@ -380,13 +386,24 @@ function slotHtml(items, set, q, fmt, admin) {
     (er ? '<p class="err" role="alert">' + esc(er) + "</p>" : "") +
     '<div class="qact">' + pick + submit + (it && !pf ? fileBtns(it) : "") + "</div></div>";
 }
-function slipHtml(items, setId, admin) {
+const scoreKey = (setId, q) => setId + "_q" + q;
+function toScoreMap(rows) { const m = {}; rows.forEach(r => { m[scoreKey(r.set_id, r.q)] = Number(r.score); }); return m; }
+const fmtScore = v => String(Number(v));
+function scoreCell(set, q, scores, admin, hasFile) {
+  const v = scores ? scores[scoreKey(set.id, q)] : undefined;
+  if (admin) {
+    if (!hasFile) return "";
+    return '<label class="qscore edit"><span class="vh">第 ' + q + ' 題分數（0 到 100，清空代表不打分）</span><input class="scoreIn' + (v != null ? " has" : "") + '" type="number" min="0" max="100" step="0.5" inputmode="decimal" placeholder="分數" data-q="' + q + '" value="' + (v != null ? fmtScore(v) : "") + '"></label>';
+  }
+  return v != null ? '<span class="qscore" aria-label="第 ' + q + " 題 " + fmtScore(v) + ' 分"><b>' + fmtScore(v) + "</b><small>分</small></span>" : "";
+}
+function slipHtml(items, setId, admin, scores) {
   const set = setById(setId);
   if (!set) return '<p class="muted">從左邊選一份題目開始。</p>';
   const n = setCount(items, set);
   let rows = "";
   for (let q = 1; q <= set.q_count; q++) {
-    rows += '<li class="qrow"><span class="qno">' + q + '</span><div class="slots">' + FMTS.map(f => slotHtml(items, set, q, f, admin)).join("") + "</div></li>";
+    rows += '<li class="qrow"><div class="qleft"><span class="qno">' + q + "</span>" + scoreCell(set, q, scores, admin, qDone(items, set, q)) + '</div><div class="slots">' + FMTS.map(f => slotHtml(items, set, q, f, admin)).join("") + "</div></li>";
   }
   let extra = "";
   if (admin) {
@@ -398,7 +415,10 @@ function slipHtml(items, setId, admin) {
         "</div></li>";
     }
   }
-  return "<h3>" + esc(set.title) + '</h3><p class="sub">' + KINDS[set.kind] + (set.hidden ? " · 已隱藏（選手看不到）" : "") + " · 已繳 " + n + " / " + set.q_count + " 題" + (n === set.q_count ? " · 全部繳完了" : "") + "</p>" +
+  let sum = 0, scored = 0;
+  for (let q = 1; q <= set.q_count; q++) { const v = scores && scores[scoreKey(set.id, q)]; if (v != null) { sum += v; scored++; } }
+  const total = scored ? " · 已評 " + scored + " 題，合計 " + (Math.round(sum * 10) / 10) + " 分" : "";
+  return "<h3>" + esc(set.title) + '</h3><p class="sub">' + KINDS[set.kind] + (set.hidden ? " · 已隱藏（選手看不到）" : "") + " · 已繳 " + n + " / " + set.q_count + " 題" + (n === set.q_count ? " · 全部繳完了" : "") + total + "</p>" +
     '<p class="legend" aria-label="顏色說明"><span><i class="w"></i>左：Word（DOCX）</span><span><i class="p"></i>右：PDF</span><span><i class="rb"></i>彩虹＝已繳</span></p>' +
     '<ol class="qlist">' + rows + extra + "</ol>" +
     (admin ? "" : '<p class="rules">每一題可以繳一份 DOCX 和一份 PDF，只收這兩種格式，單檔上限 20 MB。重新繳交會取代同一格的舊檔。</p>');
@@ -413,10 +433,10 @@ function renderBank() {
   if (!S.customPicked || !c.some(s => s.id === S.customSel)) S.customSel = defaultSel(c);
   $("bankStats").innerHTML = statsHtml(S.items, b);
   $("bankList").innerHTML = listHtml(S.items, b, S.bankSel);
-  $("bankDetail").innerHTML = S.bankSel ? slipHtml(S.items, S.bankSel, false) : '<p class="muted">目前沒有開放的題目，請等老師新增。</p>';
+  $("bankDetail").innerHTML = S.bankSel ? slipHtml(S.items, S.bankSel, false, S.scores) : '<p class="muted">目前沒有開放的題目，請等老師新增。</p>';
   $("customStats").innerHTML = statsHtml(S.items, c);
   $("customList").innerHTML = listHtml(S.items, c, S.customSel);
-  $("customDetail").innerHTML = S.customSel ? slipHtml(S.items, S.customSel, false) : '<p class="muted">老師還沒有開自製題目。</p>';
+  $("customDetail").innerHTML = S.customSel ? slipHtml(S.items, S.customSel, false, S.scores) : '<p class="muted">老師還沒有開自製題目。</p>';
   $("tab-custom").hidden = !S.isAdmin && !c.length;
 }
 const isNarrow = () => window.matchMedia("(max-width:899px)").matches || document.documentElement.classList.contains("mobile");
@@ -495,8 +515,8 @@ async function ensureAdminData(force) {
   if (S.admin.loading) return;
   S.admin.loading = true;
   try {
-    const r = await Promise.all([api.allProfiles(), api.allSubs(), api.listSets()]);
-    S.admin.profiles = r[0] || []; S.admin.subs = r[1] || []; S.sets = r[2] || S.sets; S.admin.loaded = true;
+    const r = await Promise.all([api.allProfiles(), api.allSubs(), api.listSets(), api.allScores().catch(() => [])]);
+    S.admin.profiles = r[0] || []; S.admin.subs = r[1] || []; S.sets = r[2] || S.sets; S.admin.scores = r[3] || []; S.admin.loaded = true;
   } catch (e) { toast("讀取後台資料失敗：" + humanErr(e)); }
   S.admin.loading = false;
 }
@@ -540,7 +560,7 @@ function openDetail(uid) {
   const cs = all.filter(s => s.kind === "c");
   $("dCustomBox").hidden = !cs.length;
   $("dCustomList").innerHTML = listHtml(items, cs, S.admin.sel);
-  $("dSlip").innerHTML = slipHtml(items, S.admin.sel, true);
+  $("dSlip").innerHTML = slipHtml(items, S.admin.sel, true, toScoreMap(S.admin.scores.filter(x => x.user_id === uid)));
 }
 function pickDetailSet(e) {
   const b = e.target.closest("[data-set]"); if (!b) return;
@@ -550,6 +570,24 @@ function pickDetailSet(e) {
 $("dList").addEventListener("click", pickDetailSet);
 $("dCustomList").addEventListener("click", pickDetailSet);
 $("dSlip").addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b) fileAction(b); });
+$("dSlip").addEventListener("change", async e => {
+  const t = e.target;
+  if (!t || !t.classList || !t.classList.contains("scoreIn") || !S.isAdmin) return;
+  const uid = S.admin.detailUid, setId = S.admin.sel, q = +t.dataset.q, raw = t.value.trim();
+  const i = S.admin.scores.findIndex(x => x.user_id === uid && x.set_id === setId && x.q === q);
+  try {
+    if (raw === "") {
+      if (i >= 0) { await api.deleteScore(uid, setId, q); S.admin.scores.splice(i, 1); toast("已清除第 " + q + " 題的分數"); }
+    } else {
+      const v = Math.round(Number(raw) * 10) / 10;
+      if (!isFinite(v) || v < 0 || v > 100) { toast("分數要在 0 到 100 之間"); openDetail(uid); return; }
+      const row = await api.upsertScore({ user_id: uid, set_id: setId, q: q, score: v });
+      if (i >= 0) S.admin.scores[i] = row; else S.admin.scores.push(row);
+      toast("第 " + q + " 題：" + fmtScore(v) + " 分");
+    }
+  } catch (err) { toast("分數儲存失敗：" + humanErr(err) + "（若一直失敗，請確認已執行最新的 schema.sql）"); }
+  openDetail(uid);
+});
 
 /* ================= 後台：題庫管理 ================= */
 function fileCounts() { const m = {}; S.admin.subs.forEach(s => { m[s.set_id] = (m[s.set_id] || 0) + 1; }); return m; }
@@ -757,6 +795,7 @@ function syncPanel() {
 }
 function initUI() {
   loadUI(); applyUI();
+  $("verApp").textContent = VERSION;
   narrowMq.addEventListener("change", applyUI);
   $("accentSwatches").innerHTML = SWATCHES.map(c => '<button type="button" style="background:' + c + '" data-c="' + c + '" aria-label="主色 ' + c + '"></button>').join("");
   const setPanel = open => { $("themePanel").hidden = !open; $("themeBtn").setAttribute("aria-expanded", String(open)); if (open) syncPanel(); };

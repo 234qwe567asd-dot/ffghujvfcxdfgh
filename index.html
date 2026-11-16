@@ -185,7 +185,15 @@ table{border-collapse:collapse;width:100%}
 .slip h3{font-size:22px;font-weight:900}
 .slip .sub{margin:2px 0 14px;color:var(--ink2);font-size:13px}
 .qlist{list-style:none;margin:0;padding:0;border-top:1px solid var(--grid)}
-.qrow{position:relative;display:grid;grid-template-columns:30px minmax(0,1fr);gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--grid2)}
+.qrow{position:relative;display:grid;grid-template-columns:50px minmax(0,1fr);gap:4px 12px;padding:12px 0;border-bottom:1px solid var(--grid2)}
+.qleft{display:flex;flex-direction:column;align-items:flex-start;gap:6px;min-width:0}
+.qscore{display:inline-flex;align-items:baseline;gap:1px;padding:2px 8px;border-radius:12px;background:var(--green);color:var(--on-green);font-family:var(--mono);font-size:14px;line-height:1.5;white-space:nowrap}
+.qscore small{font-size:11px}
+.qscore.edit{padding:0;background:none;display:block}
+.scoreIn{width:50px;height:32px;padding:0 4px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);font-family:var(--mono);font-size:14px;text-align:center;-moz-appearance:textfield;appearance:textfield}
+.scoreIn::-webkit-outer-spin-button,.scoreIn::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+.scoreIn.has{border-color:var(--green);background:var(--green-soft);font-weight:700}
+.scoreIn::placeholder{font-size:11px;color:var(--ink2)}
 .qno{font-family:var(--serif);font-weight:900;font-size:22px;line-height:1.1;color:var(--ink2)}
 .qmain{min-width:0;display:flex;gap:10px;align-items:center}
 .seal{flex:none;display:inline-grid;place-items:center;width:46px;height:46px;border-radius:6px;color:var(--seal);background:var(--seal-soft);font:900 15px/1 var(--serif);letter-spacing:.05em;transform:rotate(-6deg);box-shadow:inset 0 0 0 2px var(--seal),inset 0 0 0 4px var(--seal-soft),inset 0 0 0 5px var(--seal)}
@@ -406,7 +414,7 @@ html.mobile .trow>span.lb{flex-basis:100%}
       <div class="trow"><span class="lb">PDF 顏色（預設紅）</span><label class="vh" for="pdfInput">PDF 顏色</label><input type="color" id="pdfInput" value="#c0392b"></div>
       <div class="trow"><span class="lb">明暗</span><label class="vh" for="themeSel">明暗</label><select id="themeSel"><option value="auto">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></div>
       <div class="trow"><span class="lb">版面</span><label class="vh" for="layoutSel">版面</label><select id="layoutSel"><option value="auto">自動（窄螢幕用手機版）</option><option value="mobile">手機版</option><option value="desktop">電腦版</option></select></div>
-      <div class="foot"><p>設定只存在這個瀏覽器，不會影響別人。</p><button type="button" class="btn" id="themeReset">恢復預設</button><button type="button" class="btn primary" id="themeClose">完成</button></div>
+      <div class="foot"><p>設定只存在這個瀏覽器，不會影響別人。網站版本 <b id="verApp">?</b>（若顯示「?」，代表 app.js 還是舊的，請強制重新整理）</p><button type="button" class="btn" id="themeReset">恢復預設</button><button type="button" class="btn primary" id="themeClose">完成</button></div>
     </section>
 
     <nav class="tabs" aria-label="功能">
@@ -446,7 +454,7 @@ html.mobile .trow>span.lb{flex-basis:100%}
         <div class="bankhead">
           <div>
             <h2 class="pagetitle">文書題庫</h2>
-            <p>選一份題目，每一題左邊繳 Word（DOCX）、右邊繳 PDF（兩份都繳或只繳一份都可以）。繳交後會蓋上已繳章，檔案送到後台，不評分。</p>
+            <p>選一份題目，每一題左邊繳 Word（DOCX）、右邊繳 PDF（兩份都繳或只繳一份都可以）。繳交後會蓋上已繳章，檔案送到後台；老師評分後，分數會顯示在題號旁邊。</p>
           </div>
           <div id="bankStats" class="bstat"></div>
         </div>
@@ -539,6 +547,6 @@ html.mobile .trow>span.lb{flex-basis:100%}
 
 <script src="config.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.js"></script>
-<script src="app.js"></script>
+<script src="app.js?v=2.3"></script>
 </body>
 </html>
