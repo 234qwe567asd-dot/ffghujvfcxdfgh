@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <title>文書日課</title>
-<meta name="theme-color" content="#2a6b55">
+<meta name="theme-color" content="#2a6b55" id="themeColorMeta">
 <meta name="description" content="每日計畫行事曆與文書題庫繳交">
 <link rel="manifest" href="manifest.webmanifest">
 <link rel="icon" type="image/png" href="icons/icon-192.png">
@@ -22,19 +22,31 @@
   --grid:#c8d3cd; --grid2:#dfe7e2;
   --green:#2a6b55; --green-soft:#dcebe4; --on-green:#ffffff;
   --seal:#bf3a31; --seal-soft:#f8e4e1;
+  --word:#2f6fd0; --pdf:#c0392b;
+  --word-soft:color-mix(in srgb,var(--word) 13%,var(--sheet));
+  --pdf-soft:color-mix(in srgb,var(--pdf) 13%,var(--sheet));
   --serif:"Noto Serif TC","Songti TC","PMingLiU",serif;
   --sans:"Noto Sans TC","PingFang TC","Microsoft JhengHei",system-ui,sans-serif;
   --mono:"IBM Plex Mono",ui-monospace,Menlo,Consolas,monospace;
   color-scheme:light;
 }
 @media (prefers-color-scheme: dark){
-  :root{
+  :root:not([data-theme="light"]){
     --paper:#111614; --sheet:#181f1c; --ink:#e5ece8; --ink2:#9aa9a2;
     --grid:#35423c; --grid2:#252f2a;
     --green:#63b898; --green-soft:#1e3329; --on-green:#0d1512;
     --seal:#e2675d; --seal-soft:#3a1f1d;
+    --word:#6ea2f2; --pdf:#e5776d;
     color-scheme:dark;
   }
+}
+:root[data-theme="dark"]{
+  --paper:#111614; --sheet:#181f1c; --ink:#e5ece8; --ink2:#9aa9a2;
+  --grid:#35423c; --grid2:#252f2a;
+  --green:#63b898; --green-soft:#1e3329; --on-green:#0d1512;
+  --seal:#e2675d; --seal-soft:#3a1f1d;
+  --word:#6ea2f2; --pdf:#e5776d;
+  color-scheme:dark;
 }
 *{box-sizing:border-box}
 html{-webkit-text-size-adjust:100%}
@@ -163,8 +175,11 @@ table{border-collapse:collapse;width:100%}
 .setbtn:hover{background:var(--grid2)}
 .setbtn.sel{background:var(--green-soft);box-shadow:inset 0 0 0 2px var(--green)}
 .sqs{display:flex;gap:4px}
-.sq{display:block;width:12px;height:12px;border:1.5px solid var(--grid);border-radius:2px;background:var(--sheet)}
-.sq.on{background:var(--seal);border-color:var(--seal)}
+.sq{display:flex;width:18px;height:12px;border:1.5px solid var(--grid);border-radius:2px;background:var(--sheet);overflow:hidden}
+.sq b{display:block;flex:1}
+.sq b+b{border-left:1px solid var(--grid)}
+.sq b.w.on{background:var(--word)}
+.sq b.p.on{background:var(--pdf)}
 .cnt{font-family:var(--mono);font-size:12px;color:var(--ink2)}
 .setbtn.full .cnt{color:var(--seal);font-weight:500}
 .slip{padding:18px;position:sticky;top:16px}
@@ -222,9 +237,21 @@ table{border-collapse:collapse;width:100%}
 .yrows .setbtn.hid{border-style:dashed;opacity:.8}
 .stitle{font-size:14px;font-weight:700;line-height:1.35;overflow-wrap:anywhere}
 .sqs{flex-wrap:wrap}
-.slots{display:flex;flex-direction:column;gap:10px;min-width:0}
-.slot{display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px 10px;border:1px solid var(--grid2);border-radius:3px}
-.slot.has{border-color:var(--green)}
+.slots{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px;min-width:0;align-items:stretch}
+.slot{--fc:var(--word);--fc-soft:var(--word-soft);display:flex;flex-direction:column;gap:6px;min-width:0;padding:8px 10px;border:1px solid var(--grid2);border-top:3px solid var(--fc);border-radius:3px}
+.slot.p{--fc:var(--pdf);--fc-soft:var(--pdf-soft)}
+.slot.has{border-color:var(--fc);background:var(--fc-soft)}
+.slot .tag{color:var(--fc);border-color:var(--fc);font-weight:500}
+.slot .seal{color:var(--fc);background:var(--fc-soft);box-shadow:inset 0 0 0 2px var(--fc),inset 0 0 0 4px var(--fc-soft),inset 0 0 0 5px var(--fc)}
+.slot .qact{grid-column:auto;margin-top:auto}
+.slot .qact .btn{min-height:34px;padding:3px 10px;font-size:13px}
+.slot .err{grid-column:auto}
+.legend{display:flex;flex-wrap:wrap;align-items:center;gap:4px 14px;margin:0 0 10px;font-size:13px;color:var(--ink2)}
+.legend span{display:inline-flex;align-items:center;gap:6px}
+.legend i{display:inline-block;width:14px;height:14px;border-radius:3px}
+.legend i.w{background:var(--word)}
+.legend i.p{background:var(--pdf)}
+.grp{margin:0;padding:10px 12px 4px;font-family:var(--serif);font-size:16px;font-weight:900;border-top:1px solid var(--grid)}
 .slothead{display:flex;align-items:center;justify-content:space-between;gap:8px}
 .slotbody{min-width:0}
 .seal.sm{width:34px;height:34px;font-size:12px;border-radius:5px}
@@ -264,6 +291,41 @@ table{border-collapse:collapse;width:100%}
   .bd{font-size:64px}
   .brand h1{font-size:26px}
 }
+/* 外觀設定面板 */
+.themepanel{padding:16px 18px;margin-bottom:16px}
+.themepanel h3{font-size:18px;font-weight:900;margin-bottom:10px}
+.trow{display:flex;flex-wrap:wrap;align-items:center;gap:8px 12px;padding:8px 0;border-top:1px solid var(--grid2)}
+.trow>span.lb{flex:0 0 150px;font-size:14px;font-weight:500}
+.trow input[type=color]{width:46px;height:36px;padding:2px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet);cursor:pointer}
+.trow select{height:38px;padding:0 10px;border:1px solid var(--ink2);border-radius:3px;background:var(--sheet)}
+.swatches{display:flex;gap:6px;flex-wrap:wrap}
+.swatches button{width:30px;height:30px;border-radius:50%;border:2px solid var(--sheet);box-shadow:0 0 0 1px var(--ink2);cursor:pointer;padding:0}
+.themepanel .foot{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px}
+.themepanel .foot p{flex:1 1 200px;margin:0;font-size:13px;color:var(--ink2)}
+
+/* 手機版：底部分頁列、單欄、大按鈕（螢幕窄時自動套用，也可在「外觀」強制） */
+html.mobile .app{max-width:480px}
+html.mobile body{padding-bottom:calc(88px + env(safe-area-inset-bottom,0px))}
+html.mobile .top{margin-bottom:12px}
+html.mobile .brand h1{font-size:26px}
+html.mobile .brand p{display:none}
+html.mobile .tabs{position:fixed;left:50%;transform:translateX(-50%);bottom:0;width:min(100%,480px);margin:0;gap:0;z-index:15;flex-wrap:nowrap;background:var(--sheet);border:none;border-top:1px solid var(--grid);padding:0 env(safe-area-inset-right,0px) env(safe-area-inset-bottom,0px) env(safe-area-inset-left,0px)}
+html.mobile .tabs a{flex:1 1 0;min-width:0;display:flex;align-items:center;justify-content:center;text-align:center;min-height:54px;padding:6px 2px;margin:0;border:none;border-radius:0;font-size:13px;white-space:nowrap}
+html.mobile .tabs a[aria-current="page"]{background:transparent;color:var(--green);box-shadow:inset 0 3px 0 var(--green)}
+html.mobile .toast{padding-bottom:calc(68px + env(safe-area-inset-bottom,0px))}
+html.mobile .cal-layout,html.mobile .bank-layout,html.mobile .bankhead{grid-template-columns:minmax(0,1fr)}
+html.mobile .daypanel,html.mobile .slip{position:static}
+html.mobile .daypanel{order:-1}
+html.mobile .day{min-height:54px;padding:4px 4px}
+html.mobile .bd{font-size:64px}
+html.mobile .btn{min-height:44px}
+html.mobile .qact .btn,html.mobile .slot .qact .btn{min-height:40px}
+html.mobile .yrow{grid-template-columns:minmax(0,1fr)}
+html.mobile .ylabel{display:flex;align-items:baseline;gap:8px}
+html.mobile .ylabel small{display:inline}
+html.mobile .yrows .setbtn{max-width:none}
+html.mobile .trow>span.lb{flex-basis:100%}
+@media (max-width:340px){.slots{grid-template-columns:minmax(0,1fr)}}
 @media (prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
 </style>
 </head>
@@ -332,13 +394,25 @@ table{border-collapse:collapse;width:100%}
       </div>
       <div class="who">
         <b id="whoName"></b><span id="whoTag" class="tag admin" hidden>管理員</span>
+        <button type="button" class="txtbtn" id="themeBtn" aria-expanded="false" aria-controls="themePanel">外觀</button>
         <button type="button" class="txtbtn" id="logoutBtn">登出</button>
       </div>
     </header>
 
+    <section id="themePanel" class="sheet themepanel" aria-label="外觀設定" hidden>
+      <h3>外觀設定</h3>
+      <div class="trow"><span class="lb">主色（按鈕、選取）</span><div class="swatches" id="accentSwatches"></div><label class="vh" for="accentInput">自選主色</label><input type="color" id="accentInput" value="#2a6b55"></div>
+      <div class="trow"><span class="lb">Word 顏色（預設藍）</span><label class="vh" for="wordInput">Word 顏色</label><input type="color" id="wordInput" value="#2f6fd0"></div>
+      <div class="trow"><span class="lb">PDF 顏色（預設紅）</span><label class="vh" for="pdfInput">PDF 顏色</label><input type="color" id="pdfInput" value="#c0392b"></div>
+      <div class="trow"><span class="lb">明暗</span><label class="vh" for="themeSel">明暗</label><select id="themeSel"><option value="auto">跟隨系統</option><option value="light">淺色</option><option value="dark">深色</option></select></div>
+      <div class="trow"><span class="lb">版面</span><label class="vh" for="layoutSel">版面</label><select id="layoutSel"><option value="auto">自動（窄螢幕用手機版）</option><option value="mobile">手機版</option><option value="desktop">電腦版</option></select></div>
+      <div class="foot"><p>設定只存在這個瀏覽器，不會影響別人。</p><button type="button" class="btn" id="themeReset">恢復預設</button><button type="button" class="btn primary" id="themeClose">完成</button></div>
+    </section>
+
     <nav class="tabs" aria-label="功能">
       <a href="#calendar" id="tab-calendar" aria-current="page">行事曆</a>
       <a href="#bank" id="tab-bank">文書題庫</a>
+      <a href="#custom" id="tab-custom">自製題目</a>
       <a href="#admin" id="tab-admin" hidden>選手</a>
       <a href="#sets" id="tab-sets" hidden>題庫管理</a>
     </nav>
@@ -372,13 +446,27 @@ table{border-collapse:collapse;width:100%}
         <div class="bankhead">
           <div>
             <h2 class="pagetitle">文書題庫</h2>
-            <p>選一份題目，每一題可以繳兩份檔案：一份 DOCX、一份 PDF（兩份都繳或只繳一份都可以）。繳交後會蓋上已繳章，檔案送到後台，不評分。</p>
+            <p>選一份題目，每一題左邊繳 Word（DOCX）、右邊繳 PDF（兩份都繳或只繳一份都可以）。繳交後會蓋上已繳章，檔案送到後台，不評分。</p>
           </div>
           <div id="bankStats" class="bstat"></div>
         </div>
         <div class="bank-layout">
           <div class="sheet"><ul class="yrows" id="bankList" aria-label="題目清單"></ul></div>
           <aside class="sheet slip" id="bankDetail" aria-live="polite"></aside>
+        </div>
+      </section>
+
+      <section id="view-custom" aria-label="自製題目" hidden>
+        <div class="bankhead">
+          <div>
+            <h2 class="pagetitle">自製題目</h2>
+            <p>老師自己出的模擬題，和歷屆正式賽、模擬賽分開放。每一題一樣左邊繳 Word、右邊繳 PDF。</p>
+          </div>
+          <div id="customStats" class="bstat"></div>
+        </div>
+        <div class="bank-layout">
+          <div class="sheet"><ul class="yrows" id="customList" aria-label="自製題目清單"></ul></div>
+          <aside class="sheet slip" id="customDetail" aria-live="polite"></aside>
         </div>
       </section>
 
@@ -438,7 +526,9 @@ table{border-collapse:collapse;width:100%}
           <div id="dStats" class="bstat" style="min-width:min(100%,260px)"></div>
         </div>
         <div class="bank-layout">
-          <div class="sheet"><ul class="yrows" id="dList" aria-label="這位選手的題目清單"></ul></div>
+          <div class="sheet"><ul class="yrows" id="dList" aria-label="這位選手的題目清單"></ul>
+            <div id="dCustomBox" hidden><h4 class="grp">自製題目</h4><ul class="yrows" id="dCustomList" aria-label="這位選手的自製題目"></ul></div>
+          </div>
           <aside class="sheet slip" id="dSlip" aria-live="polite"></aside>
         </div>
       </section>

@@ -27,7 +27,7 @@ const S = {
   sb: null, uid: null, profile: null, isAdmin: false, ready: false, recovery: false,
   today: today0, sel: today0, vy: new Date().getFullYear(), vm: new Date().getMonth(),
   plans: [], plansLoaded: false, pbusy: {},
-  sets: [], items: {}, bankSel: null, bankPicked: false, pending: {}, busy: {}, errs: {},
+  sets: [], items: {}, bankSel: null, bankPicked: false, customSel: null, customPicked: false, pending: {}, busy: {}, errs: {},
   admin: {
     profiles: [], subs: [], loaded: false, loading: false, q: "",
     detailUid: null, sel: null, editId: null, confirmDel: null, tidy: null, busy: false
@@ -188,7 +188,7 @@ async function handleSession(session, force) {
 }
 
 /* ================= 路由 ================= */
-const VIEWS = ["calendar", "bank", "admin", "sets"];
+const VIEWS = ["calendar", "bank", "custom", "admin", "sets"];
 function route() {
   if (!S.ready) return;
   const parts = (location.hash || "#calendar").slice(1).split("/");
@@ -346,7 +346,10 @@ function listHtml(items, sets, sel) {
   return years.map(y => {
     const btns = sets.filter(s => s.year === y).sort(sortSets).map(s => {
       const n = setCount(items, s);
-      let sq = ""; for (let q = 1; q <= s.q_count; q++) sq += '<i class="sq' + (qDone(items, s, q) ? " on" : "") + '"></i>';
+      let sq = "";
+      for (let q = 1; q <= s.q_count; q++) {
+        sq += '<i class="sq"><b class="w' + (items[slotKey(s.id, q, "docx")] ? " on" : "") + '"></b><b class="p' + (items[slotKey(s.id, q, "pdf")] ? " on" : "") + '"></b></i>';
+      }
       return '<button type="button" class="setbtn' + (sel === s.id ? " sel" : "") + (n === s.q_count ? " full" : "") + (s.hidden ? " hid" : "") + '" data-set="' + esc(s.id) + '" aria-pressed="' + (sel === s.id) + '" aria-label="' + esc(s.title) + "，已繳 " + n + " 題，共 " + s.q_count + ' 題">' +
         '<span class="stitle">' + esc(setLabel(s)) + '</span><span class="sqs">' + sq + '</span><span class="cnt">' + n + "/" + s.q_count + " 題" + (s.hidden ? " · 已隱藏" : "") + "</span></button>";
     }).join("");
@@ -364,14 +367,14 @@ function slotHtml(items, set, q, fmt, admin) {
   const k = slotKey(set.id, q, fmt), it = items[k];
   const head = '<div class="slothead"><span class="tag">' + FMT_LABEL[fmt] + "</span>" + (it ? '<span class="seal sm" aria-hidden="true">已繳</span>' : "") + "</div>";
   if (admin) {
-    return '<div class="slot' + (it ? " has" : "") + '">' + head + '<div class="slotbody">' + (it ? fileMetaHtml(it) : '<span class="muted">尚未繳交</span>') + "</div>" +
+    return '<div class="slot ' + (fmt === "docx" ? "w" : "p") + (it ? " has" : "") + '">' + head + '<div class="slotbody">' + (it ? fileMetaHtml(it) : '<span class="muted">尚未繳交</span>') + "</div>" +
       (it ? '<div class="qact">' + fileBtns(it) + "</div>" : "") + "</div>";
   }
   const pf = S.pending[k], busy = !!S.busy[k], er = S.errs[k];
   const body = pf ? '<div class="pend">已選：' + esc(pf.name) + "（" + fmtSize(pf.size) + "）</div>" : it ? fileMetaHtml(it) : '<span class="muted">尚未繳交</span>';
   const pick = '<label class="btn">' + (it || pf ? "更換檔案" : "選擇 " + FMT_LABEL[fmt]) + '<input class="vh" type="file" id="f-' + esc(set.id) + "-" + q + "-" + fmt + '" data-q="' + q + '" data-fmt="' + fmt + '" accept="' + ACCEPT[fmt] + '"' + (busy ? " disabled" : "") + "></label>";
   const submit = pf ? '<button type="button" class="btn primary" data-act="submit" data-q="' + q + '" data-fmt="' + fmt + '"' + (busy ? " disabled" : "") + ">" + (busy ? "上傳中…" : (it ? "重新繳交" : "繳交")) + "</button>" : "";
-  return '<div class="slot' + (it ? " has" : "") + '">' + head + '<div class="slotbody">' + body + "</div>" +
+  return '<div class="slot ' + (fmt === "docx" ? "w" : "p") + (it ? " has" : "") + '">' + head + '<div class="slotbody">' + body + "</div>" +
     (er ? '<p class="err" role="alert">' + esc(er) + "</p>" : "") +
     '<div class="qact">' + pick + submit + (it && !pf ? fileBtns(it) : "") + "</div></div>";
 }
@@ -389,40 +392,53 @@ function slipHtml(items, setId, admin) {
       .sort((a, b) => (a.q - b.q) || a.fmt.localeCompare(b.fmt));
     if (over.length) {
       extra = '<li class="qrow extra"><span class="qno">!</span><div class="slots"><p class="muted" style="margin:0">這些是超出目前題數（' + set.q_count + " 題）的繳交，選手看不到，檔案都還在。</p>" +
-        over.map(it => '<div class="slot has"><div class="slothead"><span class="tag">第 ' + it.q + " 題 · " + FMT_LABEL[it.fmt] + '</span></div><div class="slotbody">' + fileMetaHtml(it) + '</div><div class="qact">' + fileBtns(it) + "</div></div>").join("") +
+        over.map(it => '<div class="slot ' + (it.fmt === "docx" ? "w" : "p") + ' has"><div class="slothead"><span class="tag">第 ' + it.q + " 題 · " + FMT_LABEL[it.fmt] + '</span></div><div class="slotbody">' + fileMetaHtml(it) + '</div><div class="qact">' + fileBtns(it) + "</div></div>").join("") +
         "</div></li>";
     }
   }
   return "<h3>" + esc(set.title) + '</h3><p class="sub">' + KINDS[set.kind] + (set.hidden ? " · 已隱藏（選手看不到）" : "") + " · 已繳 " + n + " / " + set.q_count + " 題" + (n === set.q_count ? " · 全部繳完了" : "") + "</p>" +
+    '<p class="legend" aria-label="顏色說明"><span><i class="w"></i>左：Word（DOCX）</span><span><i class="p"></i>右：PDF</span></p>' +
     '<ol class="qlist">' + rows + extra + "</ol>" +
     (admin ? "" : '<p class="rules">每一題可以繳一份 DOCX 和一份 PDF，只收這兩種格式，單檔上限 20 MB。重新繳交會取代同一格的舊檔。</p>');
 }
 
 function defaultSel(sets) { const s = sets.find(x => x.kind === "o") || sets[0]; return s ? s.id : null; }
+const bankSets = () => visibleSets().filter(s => s.kind !== "c");
+const customSets = () => visibleSets().filter(s => s.kind === "c");
 function renderBank() {
-  const sets = visibleSets();
-  if (!S.bankPicked || !sets.some(s => s.id === S.bankSel)) S.bankSel = defaultSel(sets);
-  $("bankStats").innerHTML = statsHtml(S.items, sets);
-  $("bankList").innerHTML = listHtml(S.items, sets, S.bankSel);
+  const b = bankSets(), c = customSets();
+  if (!S.bankPicked || !b.some(s => s.id === S.bankSel)) S.bankSel = defaultSel(b);
+  if (!S.customPicked || !c.some(s => s.id === S.customSel)) S.customSel = defaultSel(c);
+  $("bankStats").innerHTML = statsHtml(S.items, b);
+  $("bankList").innerHTML = listHtml(S.items, b, S.bankSel);
   $("bankDetail").innerHTML = S.bankSel ? slipHtml(S.items, S.bankSel, false) : '<p class="muted">目前沒有開放的題目，請等老師新增。</p>';
+  $("customStats").innerHTML = statsHtml(S.items, c);
+  $("customList").innerHTML = listHtml(S.items, c, S.customSel);
+  $("customDetail").innerHTML = S.customSel ? slipHtml(S.items, S.customSel, false) : '<p class="muted">老師還沒有開自製題目。</p>';
+  $("tab-custom").hidden = !S.isAdmin && !c.length;
 }
-$("bankList").addEventListener("click", e => {
-  const b = e.target.closest("[data-set]"); if (!b) return;
-  S.bankSel = b.dataset.set; S.bankPicked = true; renderBank();
-  if (window.matchMedia("(max-width:899px)").matches) $("bankDetail").scrollIntoView({ block: "start" });
-});
-$("bankDetail").addEventListener("change", e => {
-  const t = e.target;
-  if (t && t.type === "file" && t.files && t.files[0]) {
-    const k = slotKey(S.bankSel, t.dataset.q, t.dataset.fmt);
-    S.pending[k] = t.files[0]; S.errs[k] = ""; renderBank();
-  }
-});
-$("bankDetail").addEventListener("click", e => {
-  const b = e.target.closest("[data-act]"); if (!b) return;
-  if (b.dataset.act === "submit") submitItem(S.bankSel, +b.dataset.q, b.dataset.fmt);
-  else fileAction(b);
-});
+const isNarrow = () => window.matchMedia("(max-width:899px)").matches || document.documentElement.classList.contains("mobile");
+function bindSets(listId, detailId, key) {
+  $(listId).addEventListener("click", e => {
+    const b = e.target.closest("[data-set]"); if (!b) return;
+    S[key + "Sel"] = b.dataset.set; S[key + "Picked"] = true; renderBank();
+    if (isNarrow()) $(detailId).scrollIntoView({ block: "start" });
+  });
+  $(detailId).addEventListener("change", e => {
+    const t = e.target;
+    if (t && t.type === "file" && t.files && t.files[0]) {
+      const k = slotKey(S[key + "Sel"], t.dataset.q, t.dataset.fmt);
+      S.pending[k] = t.files[0]; S.errs[k] = ""; renderBank();
+    }
+  });
+  $(detailId).addEventListener("click", e => {
+    const b = e.target.closest("[data-act]"); if (!b) return;
+    if (b.dataset.act === "submit") submitItem(S[key + "Sel"], +b.dataset.q, b.dataset.fmt);
+    else fileAction(b);
+  });
+}
+bindSets("bankList", "bankDetail", "bank");
+bindSets("customList", "customDetail", "custom");
 
 async function fileAction(btn) {
   const mode = btn.dataset.act, path = btn.dataset.path, name = btn.dataset.name;
@@ -518,14 +534,19 @@ function openDetail(uid) {
   $("dEmail").textContent = p.email || "";
   $("dStats").innerHTML = statsHtml(toItems(mine.filter(isOpenSub)), visibleSets()) +
     (hiddenN ? '<p class="muted">另有 ' + hiddenN + " 份檔案在已隱藏的題目或超出題數的題號中，選手看不到。</p>" : "");
-  $("dList").innerHTML = listHtml(items, all, S.admin.sel);
+  $("dList").innerHTML = listHtml(items, all.filter(s => s.kind !== "c"), S.admin.sel);
+  const cs = all.filter(s => s.kind === "c");
+  $("dCustomBox").hidden = !cs.length;
+  $("dCustomList").innerHTML = listHtml(items, cs, S.admin.sel);
   $("dSlip").innerHTML = slipHtml(items, S.admin.sel, true);
 }
-$("dList").addEventListener("click", e => {
+function pickDetailSet(e) {
   const b = e.target.closest("[data-set]"); if (!b) return;
   S.admin.sel = b.dataset.set; openDetail(S.admin.detailUid);
-  if (window.matchMedia("(max-width:899px)").matches) $("dSlip").scrollIntoView({ block: "start" });
-});
+  if (isNarrow()) $("dSlip").scrollIntoView({ block: "start" });
+}
+$("dList").addEventListener("click", pickDetailSet);
+$("dCustomList").addEventListener("click", pickDetailSet);
 $("dSlip").addEventListener("click", e => { const b = e.target.closest("[data-act]"); if (b) fileAction(b); });
 
 /* ================= 後台：題庫管理 ================= */
@@ -693,6 +714,62 @@ $("tidyBox").addEventListener("click", async e => {
   renderSets(); renderBank();
 });
 
+/* ================= 外觀設定（只存在這個瀏覽器） ================= */
+const UI_KEY = "wenshu-ui", UI_DEF = { accent: "", word: "", pdf: "", theme: "auto", layout: "auto" };
+const UI = Object.assign({}, UI_DEF), HEX = /^#[0-9a-f]{6}$/i;
+const SWATCHES = ["#2a6b55", "#2f6fd0", "#7a4bb5", "#c2571a", "#b03a5b", "#4a5560"];
+const narrowMq = window.matchMedia("(max-width:700px)");
+function loadUI() {
+  try {
+    const j = JSON.parse(localStorage.getItem(UI_KEY) || "null");
+    if (j && typeof j === "object") for (const k in UI_DEF) if (typeof j[k] === "string") UI[k] = j[k];
+  } catch (e) { /* 讀不到就用預設 */ }
+}
+function saveUI() { try { localStorage.setItem(UI_KEY, JSON.stringify(UI)); } catch (e) { /* 無痕模式等情況，忽略 */ } }
+function onColor(hex) {
+  const n = parseInt(hex.slice(1), 16);
+  return (0.299 * (n >> 16 & 255) + 0.587 * (n >> 8 & 255) + 0.114 * (n & 255)) / 255 > 0.6 ? "#111111" : "#ffffff";
+}
+function applyUI() {
+  const root = document.documentElement, st = root.style;
+  if (UI.theme === "light" || UI.theme === "dark") root.setAttribute("data-theme", UI.theme); else root.removeAttribute("data-theme");
+  const setv = (n, v) => { if (v && HEX.test(v)) st.setProperty(n, v); else st.removeProperty(n); };
+  setv("--word", UI.word); setv("--pdf", UI.pdf);
+  if (UI.accent && HEX.test(UI.accent)) {
+    st.setProperty("--green", UI.accent);
+    st.setProperty("--green-soft", "color-mix(in srgb, " + UI.accent + " 16%, var(--sheet))");
+    st.setProperty("--on-green", onColor(UI.accent));
+  } else { st.removeProperty("--green"); st.removeProperty("--green-soft"); st.removeProperty("--on-green"); }
+  root.classList.toggle("mobile", UI.layout === "mobile" || (UI.layout === "auto" && narrowMq.matches));
+  const m = $("themeColorMeta"); if (m) m.setAttribute("content", HEX.test(UI.accent) ? UI.accent : "#2a6b55");
+}
+function cssColor(name, fallback) {
+  const v = getComputedStyle(document.documentElement).getPropertyValue(name).trim();
+  return HEX.test(v) ? v : fallback;
+}
+function syncPanel() {
+  $("accentInput").value = HEX.test(UI.accent) ? UI.accent : cssColor("--green", "#2a6b55");
+  $("wordInput").value = HEX.test(UI.word) ? UI.word : cssColor("--word", "#2f6fd0");
+  $("pdfInput").value = HEX.test(UI.pdf) ? UI.pdf : cssColor("--pdf", "#c0392b");
+  $("themeSel").value = UI.theme; $("layoutSel").value = UI.layout;
+}
+function initUI() {
+  loadUI(); applyUI();
+  narrowMq.addEventListener("change", applyUI);
+  $("accentSwatches").innerHTML = SWATCHES.map(c => '<button type="button" style="background:' + c + '" data-c="' + c + '" aria-label="主色 ' + c + '"></button>').join("");
+  const setPanel = open => { $("themePanel").hidden = !open; $("themeBtn").setAttribute("aria-expanded", String(open)); if (open) syncPanel(); };
+  $("themeBtn").addEventListener("click", () => setPanel($("themePanel").hidden));
+  $("themeClose").addEventListener("click", () => setPanel(false));
+  const change = (k, v) => { UI[k] = v; saveUI(); applyUI(); };
+  $("accentSwatches").addEventListener("click", e => { const b = e.target.closest("[data-c]"); if (b) { change("accent", b.dataset.c); syncPanel(); } });
+  $("accentInput").addEventListener("input", e => change("accent", e.target.value));
+  $("wordInput").addEventListener("input", e => change("word", e.target.value));
+  $("pdfInput").addEventListener("input", e => change("pdf", e.target.value));
+  $("themeSel").addEventListener("change", e => { change("theme", e.target.value); syncPanel(); });
+  $("layoutSel").addEventListener("change", e => change("layout", e.target.value));
+  $("themeReset").addEventListener("click", () => { Object.assign(UI, UI_DEF); saveUI(); applyUI(); syncPanel(); toast("已恢復預設外觀"); });
+}
+
 /* ================= 啟動 ================= */
 async function boot() {
   if (!CFG.SUPABASE_URL || !CFG.SUPABASE_ANON_KEY) { showOnly("setup"); return; }
@@ -723,6 +800,7 @@ setInterval(() => {
   }
 }, 60000);
 
+initUI();
 setAuthMode("login");
 boot();
 })();
