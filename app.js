@@ -4,7 +4,7 @@
 /* ================= 常數與小工具 ================= */
 const CFG = window.APP_CONFIG || {};
 const BUCKET = "submissions";
-const VERSION = "2.3";
+const VERSION = "2.4";
 const DOW = ["日", "一", "二", "三", "四", "五", "六"];
 const KINDS = { o: "正式賽", m: "模擬賽", c: "自製模擬題" };
 const KIND_ORDER = { o: 0, m: 1, c: 2 };
@@ -419,7 +419,7 @@ function slipHtml(items, setId, admin, scores) {
   for (let q = 1; q <= set.q_count; q++) { const v = scores && scores[scoreKey(set.id, q)]; if (v != null) { sum += v; scored++; } }
   const total = scored ? " · 已評 " + scored + " 題，合計 " + (Math.round(sum * 10) / 10) + " 分" : "";
   return "<h3>" + esc(set.title) + '</h3><p class="sub">' + KINDS[set.kind] + (set.hidden ? " · 已隱藏（選手看不到）" : "") + " · 已繳 " + n + " / " + set.q_count + " 題" + (n === set.q_count ? " · 全部繳完了" : "") + total + "</p>" +
-    '<p class="legend" aria-label="顏色說明"><span><i class="w"></i>左：Word（DOCX）</span><span><i class="p"></i>右：PDF</span><span><i class="rb"></i>彩虹＝已繳</span></p>' +
+    '<p class="legend" aria-label="顏色說明"><span><i class="w"></i>左：Word（DOCX）</span><span><i class="p"></i>右：PDF</span></p>' +
     '<ol class="qlist">' + rows + extra + "</ol>" +
     (admin ? "" : '<p class="rules">每一題可以繳一份 DOCX 和一份 PDF，只收這兩種格式，單檔上限 20 MB。重新繳交會取代同一格的舊檔。</p>');
 }
